@@ -34,12 +34,13 @@ shap_bg = load_shap_bg()
 preprocessor = model.named_steps['pre']
 clf = model.named_steps['clf']
 
-# Your test cases with SHAP values and matching waterfall plot images in images folder
+# Your test cases with SHAP values and matching waterfall plot images
+# NOTE: images are now inside "images/" folder
 test_cases = {
     6373: "images/waterfall_6373.png",
     3615: "images/waterfall_3615.png",
     5391: "images/waterfall_5391.png",
-    734:  "images/waterfall_734.png",
+    734: "images/waterfall_734.png",
     3567: "images/waterfall_3567.png"
 }
 
@@ -101,11 +102,9 @@ if submitted:
         "balance": balance
     }])
 
-    # Show input for user confirmation
     st.write("### Input data for prediction:")
     st.dataframe(input_df)
 
-    # Predict
     try:
         pred = model.predict(input_df)[0]
         proba = model.predict_proba(input_df)[0, 1]
@@ -116,7 +115,12 @@ if submitted:
     st.markdown(f"### Prediction: {'✅ Subscribed' if pred == 1 else '❌ Not Subscribed'}")
     st.markdown(f"**Probability of subscription:** {proba:.2%}")
 
-    # Map of example test case probabilities
+    # Debug: check if images exist
+    st.write("### Checking if SHAP images exist:")
+    for img_file in test_cases.values():
+        st.write(f"{img_file}: {os.path.exists(img_file)}")
+
+    # Find closest matching saved waterfall image by probability difference
     test_cases_probs = {
         6373: 0.0,
         3615: 0.655,
@@ -124,8 +128,6 @@ if submitted:
         734: 0.765,
         3567: 0.020
     }
-
-    # Find closest test case by probability
     closest_case = min(test_cases_probs.keys(), key=lambda k: abs(test_cases_probs[k] - proba))
     img_path = test_cases[closest_case]
 
@@ -135,9 +137,9 @@ if submitted:
         img = Image.open(img_path)
         st.image(img, caption=f"Waterfall plot for test case {closest_case}")
     except FileNotFoundError:
-        st.warning(f"Waterfall plot image '{img_path}' not found. Please upload it in the app folder.")
+        st.warning(f"Waterfall plot image '{img_path}' not found. Please upload it in the images folder.")
 
-    # Top positive SHAP contributors
+    # Show top positive and negative SHAP contributors as text tables
     shap_top_pos = {
         6373: {
             "month_may": 0.005538,
@@ -191,7 +193,6 @@ if submitted:
         }
     }
 
-    # Top negative SHAP contributors
     shap_top_neg = {
         6373: {
             "pdays": -0.002824,
