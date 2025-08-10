@@ -105,10 +105,11 @@ if submitted:
     st.markdown(f"### Prediction: {'✅ Subscribed' if pred == 1 else '❌ Not Subscribed'}")
     st.markdown(f"**Probability of subscription:** {proba:.2%}")
 
+    # SHAP explanation (simple fallback)
     try:
         X_pre = preprocessor.transform(input_df)
     except Exception as e:
-        st.error(f"Error preprocessing input for SHAP: {e}")
+        st.error(f"Preprocessing error for SHAP: {e}")
         X_pre = None
 
     if X_pre is not None:
@@ -117,42 +118,15 @@ if submitted:
             explainer = shap.Explainer(clf, background)
             shap_exp = explainer(X_pre)
 
-            # Try force plot (interactive HTML)
-            try:
-                force_html = shap.plots.force(shap_exp[0], matplotlib=False, show=False)
-                html_data = getattr(force_html, 'data', str(force_html))
-                components.html(html_data, height=350, scrolling=True)
-            except Exception as e_force:
-                st.warning(f"Force plot not rendered: {e_force}\nFalling back to waterfall plot.")
-                # Waterfall plot fallback
-                try:
-                    fig, ax = plt.subplots(figsize=(10, 5))
-                    shap.plots.waterfall(shap_exp[0], max_display=12, show=False)
-                    st.pyplot(fig)
-                    plt.close(fig)
-                except Exception as e_waterfall:
-                    st.warning(f"Waterfall plot not rendered: {e_waterfall}\nShowing top contributors as text.")
-                    try:
-                        vals = shap_exp.values[0] if shap_exp.values.ndim != 3 else shap_exp.values[0][:, 1]
-                        feat_names = preprocessor.get_feature_names_out()
-                        s = pd.Series(vals, index=feat_names).sort_values(ascending=False)
-                        st.write("Top positive contributors:")
-                        st.write(s.head(10))
-                        st.write("Top negative contributors:")
-                        st.write(s.tail(10))
-                    except Exception as e_text:
-                        st.error(f"SHAP text explanation failed: {e_text}")
+            # Just output textual SHAP values for now
+            vals = shap_exp.values[0] if shap_exp.values.ndim != 3 else shap_exp.values[0][:, 1]
+            feat_names = preprocessor.get_feature_names_out()
+            s = pd.Series(vals, index=feat_names).sort_values(ascending=False)
+            st.write("### SHAP Feature Contributions")
+            st.write("Top positive contributors:")
+            st.write(s.head(10))
+            st.write("Top negative contributors:")
+            st.write(s.tail(10))
 
-        except Exception as e_explainer:
-            st.error(f"SHAP explainer error: {e_explainer}")
-            st.write("Could not render SHAP plots inline. Showing top contributors as text.")
-            try:
-                vals = shap_exp.values[0] if shap_exp.values.ndim != 3 else shap_exp.values[0][:, 1]
-                feat_names = preprocessor.get_feature_names_out()
-                s = pd.Series(vals, index=feat_names).sort_values(ascending=False)
-                st.write("Top positive contributors:")
-                st.write(s.head(10))
-                st.write("Top negative contributors:")
-                st.write(s.tail(10))
-            except Exception as e_text:
-                st.error(f"SHAP text explanation failed: {e_text}")
+        except Exception as e:
+            st.error(f"SHAP explainer error: {e}")
