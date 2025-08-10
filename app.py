@@ -72,7 +72,6 @@ with st.form("input_form"):
         day_of_week = st.selectbox("day_of_week", ["mon", "tue", "wed", "thu", "fri"], index=3)
         campaign = st.number_input("campaign (contacts during this campaign)", min_value=1, value=3)
         pdays = st.number_input("pdays (days since last contact, -1 if none)", value=100)
-
     previous = st.number_input("previous (contacts before this campaign)", min_value=0, value=5)
     poutcome = st.selectbox("poutcome", ["nonexistent", "failure", "success"], index=2)
     duration = st.number_input("duration (last contact duration in seconds)", min_value=0, value=1000)
@@ -81,7 +80,6 @@ with st.form("input_form"):
     cons_conf_idx = st.number_input("cons.conf.idx", value=-36.4, format="%.1f")
     euribor3m = st.number_input("euribor3m", value=4.857, format="%.3f")
     nr_employed = st.number_input("nr.employed", value=5191.0, format="%.1f")
-
     submitted = st.form_submit_button("Predict")
 
 if submitted:
@@ -105,9 +103,10 @@ if submitted:
         "cons.price.idx": cons_price_idx,
         "cons.conf.idx": cons_conf_idx,
         "euribor3m": euribor3m,
-        "nr.employed": nr_employed
+        "nr.employed": nr_employed,
+        # Added 'balance' with a default value to match the expected 21 features
+        "balance": 0 
     }])
-
     # Predict using the full pipeline (which applies preprocessing)
     try:
         pred = model.predict(input_df)[0]
@@ -131,7 +130,6 @@ if submitted:
         try:
             explainer = shap.Explainer(clf, background)
             shap_exp = explainer(X_pre)
-
             try:
                 force_html = shap.plots.force(shap_exp[0], matplotlib=False, show=False)
                 html_data = getattr(force_html, 'data', str(force_html))
