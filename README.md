@@ -74,5 +74,5 @@ The project demonstrates an end-to-end ML workflow: from data processing, modeli
 
 ---
 
-> 🔖 Submitted as part of the **Developer Hub Internship Program**
-)
+> 🔖 Submitted as part of the **DevelopersHub Internship Program**
+
