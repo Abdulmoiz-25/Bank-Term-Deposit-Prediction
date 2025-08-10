@@ -4,7 +4,6 @@ import numpy as np
 import cloudpickle
 import gzip
 import os
-import streamlit.components.v1 as components
 from PIL import Image
 
 st.set_page_config(page_title="Term Deposit Prediction", layout="wide")
@@ -35,13 +34,13 @@ shap_bg = load_shap_bg()
 preprocessor = model.named_steps['pre']
 clf = model.named_steps['clf']
 
-# Your test cases with SHAP values and matching waterfall plot images
+# Your test cases with SHAP values and matching waterfall plot images in images folder
 test_cases = {
-    6373: "waterfall_6373.png",
-    3615: "waterfall_3615.png",
-    5391: "waterfall_5391.png",
-    734: "waterfall_734.png",
-    3567: "waterfall_3567.png"
+    6373: "images/waterfall_6373.png",
+    3615: "images/waterfall_3615.png",
+    5391: "images/waterfall_5391.png",
+    734:  "images/waterfall_734.png",
+    3567: "images/waterfall_3567.png"
 }
 
 with st.form("input_form"):
@@ -117,10 +116,7 @@ if submitted:
     st.markdown(f"### Prediction: {'✅ Subscribed' if pred == 1 else '❌ Not Subscribed'}")
     st.markdown(f"**Probability of subscription:** {proba:.2%}")
 
-    # Try to find nearest matching saved waterfall image by prediction proximity or default fallback
-    # Here, for demo, just pick the closest probability case from your 5 test cases
-
-    # Simple way: find closest test case by probability difference
+    # Map of example test case probabilities
     test_cases_probs = {
         6373: 0.0,
         3615: 0.655,
@@ -129,6 +125,7 @@ if submitted:
         3567: 0.020
     }
 
+    # Find closest test case by probability
     closest_case = min(test_cases_probs.keys(), key=lambda k: abs(test_cases_probs[k] - proba))
     img_path = test_cases[closest_case]
 
@@ -140,9 +137,7 @@ if submitted:
     except FileNotFoundError:
         st.warning(f"Waterfall plot image '{img_path}' not found. Please upload it in the app folder.")
 
-    # Show top positive and negative SHAP contributors as text tables
-    # Hardcoded values from your example (replace with real values if you have them dynamically)
-
+    # Top positive SHAP contributors
     shap_top_pos = {
         6373: {
             "month_may": 0.005538,
@@ -196,6 +191,7 @@ if submitted:
         }
     }
 
+    # Top negative SHAP contributors
     shap_top_neg = {
         6373: {
             "pdays": -0.002824,
@@ -254,4 +250,3 @@ if submitted:
 
     st.write("### Top negative contributors:")
     st.table(pd.DataFrame(shap_top_neg[closest_case].items(), columns=["Feature", "SHAP Value"]).sort_values(by="SHAP Value"))
-
