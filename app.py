@@ -36,7 +36,7 @@ except Exception as e:
 
 shap_bg = load_shap_bg()
 
-# Get preprocessor and classifier
+# Get preprocessor and classifier from pipeline
 preprocessor = model.named_steps['pre']
 clf = model.named_steps['clf']
 
@@ -119,19 +119,9 @@ if submitted:
         "nr.employed": nr_employed
     }])
 
-    # Ensure input columns match expected order and presence
-    expected_cols = preprocessor.feature_names_in_
-    missing_cols = [col for col in expected_cols if col not in input_df.columns]
-    if missing_cols:
-        st.error(f"Input data is missing columns expected by the model: {missing_cols}")
-        st.stop()
-
-    input_df = input_df[expected_cols]
-
-    # Prediction
+    # Just pass input_df as-is to model.predict
     pred = model.predict(input_df)[0]
     proba = model.predict_proba(input_df)[0, 1]
-
     st.markdown(f"### Prediction: {'✅ Subscribed' if pred == 1 else '❌ Not Subscribed'}")
     st.markdown(f"**Probability of subscription:** {proba:.2%}")
 
