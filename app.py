@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import io
 import gzip
 import os
-import streamlit.components.v1 as components # Re-added this import
+import streamlit.components.v1 as components # This import is crucial for SHAP plots
 
 st.set_page_config(page_title="Term Deposit Prediction", layout="wide")
 st.title("📈 Bank Term Deposit Subscription Prediction")
@@ -95,6 +95,10 @@ if submitted:
         "nr.employed": nr_employed,
         "balance": balance
     }])
+
+    st.write("### Input Data Used for Prediction:")
+    st.write(input_df) # Display the DataFrame used for prediction
+
     # Predict using the full pipeline (which applies preprocessing)
     try:
         pred = model.predict(input_df)[0]
@@ -119,13 +123,14 @@ if submitted:
             explainer = shap.Explainer(clf, background)
             shap_exp = explainer(X_pre)
             try:
-                # This will now work because components is imported
+                # Attempt to render SHAP force plot (HTML)
                 force_html = shap.plots.force(shap_exp[0], matplotlib=False, show=False)
                 html_data = getattr(force_html, 'data', str(force_html))
                 components.html(html_data, height=300, scrolling=True)
-            except Exception as e: # Catch specific error for force plot
-                st.error(f"Error rendering SHAP force plot: {e}")
-                # Fallback to waterfall if force plot fails
+            except Exception as e:
+                st.error(f"Error rendering SHAP force plot (HTML): {e}")
+                st.write("Falling back to SHAP waterfall plot...")
+                # Fallback to waterfall plot (Matplotlib) if force plot fails
                 try:
                     fig, ax = plt.subplots(figsize=(8, 3))
                     shap.plots.waterfall(shap_exp[0], max_display=12, show=False)
@@ -134,9 +139,9 @@ if submitted:
                     buf.seek(0)
                     st.image(buf)
                     plt.close(fig)
-                except Exception as waterfall_e: # Catch specific error for waterfall plot
-                    st.error(f"Error rendering SHAP waterfall plot: {waterfall_e}")
-                    st.write("Could not render SHAP plots inline. Showing top contributors as text.")
+                except Exception as waterfall_e:
+                    st.error(f"Error rendering SHAP waterfall plot (Matplotlib): {waterfall_e}")
+                    st.write("Could not render any SHAP plots inline. Showing top contributors as text.")
                     try:
                         vals = shap_exp.values[0] if shap_exp.values.ndim != 3 else shap_exp.values[0][:, 1]
                         feat_names = preprocessor.get_feature_names_out()
@@ -147,7 +152,7 @@ if submitted:
                         st.write(s.tail(10))
                     except Exception as ex:
                         st.write("SHAP explanation is not available:", ex)
-        except Exception as e: # General explainer error
+        except Exception as e:
             st.error(f"SHAP explainer initialization error: {e}")
             st.write("Could not render SHAP plots inline. Showing top contributors as text.")
             try:
