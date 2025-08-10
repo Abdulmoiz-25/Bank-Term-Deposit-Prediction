@@ -43,32 +43,33 @@ clf = model.named_steps['clf']
 with st.form("input_form"):
     col1, col2, col3 = st.columns(3)
     with col1:
-        age = st.number_input("age", 18, 120, 45) # Adjusted for higher subscription likelihood
+        # Adjusted initial values for higher subscription likelihood
+        age = st.number_input("age", 18, 120, 45)
         job = st.selectbox("job", ["admin.", "blue-collar", "technician", "services", "management",
                               "retired", "self-employed", "unemployed", "student", "housemaid",
-                              "entrepreneur", "unknown"], index=5) # Changed to 'retired'
-        marital = st.selectbox("marital", ["married", "single", "divorced", "unknown"], index=1) # Changed to 'single'
+                              "entrepreneur", "unknown"], index=5) # 'retired'
+        marital = st.selectbox("marital", ["married", "single", "divorced", "unknown"], index=1) # 'single'
         education = st.selectbox("education", ["basic.4y", "basic.6y", "basic.9y", "high.school",
-                                          "illiterate", "professional.course", "university.degree", "unknown"], index=6) # Kept 'university.degree'
+                                          "illiterate", "professional.course", "university.degree", "unknown"], index=6) # 'university.degree'
     with col2:
-        default = st.selectbox("default", ["no", "yes", "unknown"], index=0) # Kept 'no'
-        housing = st.selectbox("housing", ["no", "yes", "unknown"], index=0) # Changed to 'no'
-        loan = st.selectbox("loan", ["no", "yes", "unknown"], index=0) # Kept 'no'
-        contact = st.selectbox("contact", ["cellular", "telephone"], index=0) # Kept 'cellular'
+        default = st.selectbox("default", ["no", "yes", "unknown"], index=0) # 'no'
+        housing = st.selectbox("housing", ["no", "yes", "unknown"], index=0) # 'no'
+        loan = st.selectbox("loan", ["no", "yes", "unknown"], index=0) # 'no'
+        contact = st.selectbox("contact", ["cellular", "telephone"], index=0) # 'cellular'
     with col3:
-        month = st.selectbox("month", ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], index=9) # Changed to 'oct'
-        day_of_week = st.selectbox("day_of_week", ["mon", "tue", "wed", "thu", "fri"], index=3) # Kept 'thu'
-        campaign = st.number_input("campaign", 1, 50, 1) # Adjusted to 1 (fewer contacts)
-        pdays = st.number_input("pdays", -1, 999, 3) # Adjusted to 3 (recent contact)
-    previous = st.number_input("previous", 0, 50, 1) # Adjusted to 1 (some previous contact)
-    poutcome = st.selectbox("poutcome", ["nonexistent", "failure", "success"], index=2) # Kept 'success' (strong positive indicator)
+        month = st.selectbox("month", ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], index=9) # 'oct'
+        day_of_week = st.selectbox("day_of_week", ["mon", "tue", "wed", "thu", "fri"], index=3) # 'thu'
+        campaign = st.number_input("campaign", 1, 50, 1) # 1 (fewer contacts)
+        pdays = st.number_input("pdays", -1, 999, 3) # 3 (recent contact)
+    previous = st.number_input("previous", 0, 50, 1) # 1 (some previous contact)
+    poutcome = st.selectbox("poutcome", ["nonexistent", "failure", "success"], index=2) # 'success' (strong positive indicator)
     duration = st.number_input("duration", 0, 10000, 3000) # Significantly increased duration (strongest positive indicator)
-    emp_var_rate = st.number_input("emp.var.rate", value=-2.9, format="%.2f") # Adjusted to a lower value
-    cons_price_idx = st.number_input("cons.price.idx", value=92.201, format="%.3f") # Adjusted to a lower value
-    cons_conf_idx = st.number_input("cons.conf.idx", value=-31.4, format="%.1f") # Adjusted to a less negative value
-    euribor3m = st.number_input("euribor3m", value=0.8, format="%.3f") # Adjusted to a lower value
-    nr_employed = st.number_input("nr.employed", value=5000.0, format="%.1f") # Adjusted to a lower value
-    balance = st.number_input("balance", value=5000) # Adjusted to a higher value
+    emp_var_rate = st.number_input("emp.var.rate", value=-2.9, format="%.2f") # Lower value
+    cons_price_idx = st.number_input("cons.price.idx", value=92.201, format="%.3f") # Lower value
+    cons_conf_idx = st.number_input("cons.conf.idx", value=-31.4, format="%.1f") # Less negative value
+    euribor3m = st.number_input("euribor3m", value=0.8, format="%.3f") # Lower value
+    nr_employed = st.number_input("nr.employed", value=5000.0, format="%.1f") # Lower value
+    balance = st.number_input("balance", value=5000) # Higher value
     submitted = st.form_submit_button("Predict")
 
 if submitted:
