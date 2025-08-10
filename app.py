@@ -7,15 +7,12 @@ import matplotlib.pyplot as plt
 import io
 import gzip
 import os
-import streamlit.components.v1 as components # This import is crucial for SHAP plots
+import streamlit.components.v1 as components  # needed for SHAP force plot html
 
 st.set_page_config(page_title="Term Deposit Prediction", layout="wide")
 st.title("📈 Bank Term Deposit Subscription Prediction")
 st.write("Enter customer data below and click Predict. The app returns a prediction, probability and a SHAP explanation.")
 
-# =========================
-# Load model with gzip + cloudpickle
-# =========================
 @st.cache_resource
 def load_model(path="rf_pipeline_cloud.pkl.gz"):
     with gzip.open(path, "rb") as f:
@@ -31,45 +28,43 @@ def load_shap_bg(path="shap_bg.npy"):
 try:
     model = load_model("rf_pipeline_cloud.pkl.gz")
 except Exception as e:
-    st.error(f"Could not load rf_pipeline_cloud.pkl.gz. Make sure the file is in the app folder. Error: {e}")
+    st.error(f"Could not load model file. Error: {e}")
     st.stop()
 
 shap_bg = load_shap_bg()
 
-# Extract preprocessor and classifier
 preprocessor = model.named_steps['pre']
 clf = model.named_steps['clf']
 
 with st.form("input_form"):
     col1, col2, col3 = st.columns(3)
     with col1:
-        # Adjusted initial values for higher subscription likelihood
         age = st.number_input("age", 18, 120, 45)
         job = st.selectbox("job", ["admin.", "blue-collar", "technician", "services", "management",
-                              "retired", "self-employed", "unemployed", "student", "housemaid",
-                              "entrepreneur", "unknown"], index=5) # 'retired'
-        marital = st.selectbox("marital", ["married", "single", "divorced", "unknown"], index=1) # 'single'
+                                   "retired", "self-employed", "unemployed", "student", "housemaid",
+                                   "entrepreneur", "unknown"], index=5)
+        marital = st.selectbox("marital", ["married", "single", "divorced", "unknown"], index=1)
         education = st.selectbox("education", ["basic.4y", "basic.6y", "basic.9y", "high.school",
-                                          "illiterate", "professional.course", "university.degree", "unknown"], index=6) # 'university.degree'
+                                              "illiterate", "professional.course", "university.degree", "unknown"], index=6)
     with col2:
-        default = st.selectbox("default", ["no", "yes", "unknown"], index=0) # 'no'
-        housing = st.selectbox("housing", ["no", "yes", "unknown"], index=0) # 'no'
-        loan = st.selectbox("loan", ["no", "yes", "unknown"], index=0) # 'no'
-        contact = st.selectbox("contact", ["cellular", "telephone"], index=0) # 'cellular'
+        default = st.selectbox("default", ["no", "yes", "unknown"], index=0)
+        housing = st.selectbox("housing", ["no", "yes", "unknown"], index=0)
+        loan = st.selectbox("loan", ["no", "yes", "unknown"], index=0)
+        contact = st.selectbox("contact", ["cellular", "telephone"], index=0)
     with col3:
-        month = st.selectbox("month", ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], index=9) # 'oct'
-        day_of_week = st.selectbox("day_of_week", ["mon", "tue", "wed", "thu", "fri"], index=3) # 'thu'
-        campaign = st.number_input("campaign", 1, 50, 1) # 1 (fewer contacts)
-        pdays = st.number_input("pdays", -1, 999, 3) # 3 (recent contact)
-    previous = st.number_input("previous", 0, 50, 1) # 1 (some previous contact)
-    poutcome = st.selectbox("poutcome", ["nonexistent", "failure", "success"], index=2) # 'success' (strong positive indicator)
-    duration = st.number_input("duration", 0, 10000, 3000) # Significantly increased duration (strongest positive indicator)
-    emp_var_rate = st.number_input("emp.var.rate", value=-2.9, format="%.2f") # Lower value
-    cons_price_idx = st.number_input("cons.price.idx", value=92.201, format="%.3f") # Lower value
-    cons_conf_idx = st.number_input("cons.conf.idx", value=-31.4, format="%.1f") # Less negative value
-    euribor3m = st.number_input("euribor3m", value=0.8, format="%.3f") # Lower value
-    nr_employed = st.number_input("nr.employed", value=5000.0, format="%.1f") # Lower value
-    balance = st.number_input("balance", value=5000) # Higher value
+        month = st.selectbox("month", ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], index=9)
+        day_of_week = st.selectbox("day_of_week", ["mon", "tue", "wed", "thu", "fri"], index=3)
+        campaign = st.number_input("campaign", 1, 50, 1)
+        pdays = st.number_input("pdays", -1, 999, 3)
+    previous = st.number_input("previous", 0, 50, 1)
+    poutcome = st.selectbox("poutcome", ["nonexistent", "failure", "success"], index=2)
+    duration = st.number_input("duration", 0, 10000, 3000)
+    emp_var_rate = st.number_input("emp.var.rate", value=-2.9, format="%.2f")
+    cons_price_idx = st.number_input("cons.price.idx", value=92.201, format="%.3f")
+    cons_conf_idx = st.number_input("cons.conf.idx", value=-31.4, format="%.1f")
+    euribor3m = st.number_input("euribor3m", value=0.8, format="%.3f")
+    nr_employed = st.number_input("nr.employed", value=5000.0, format="%.1f")
+    balance = st.number_input("balance", value=5000)
     submitted = st.form_submit_button("Predict")
 
 if submitted:
@@ -98,9 +93,8 @@ if submitted:
     }])
 
     st.write("### Input Data Used for Prediction:")
-    st.write(input_df) # Display the DataFrame used for prediction
+    st.write(input_df)
 
-    # Predict using the full pipeline (which applies preprocessing)
     try:
         pred = model.predict(input_df)[0]
         proba = model.predict_proba(input_df)[0, 1]
@@ -111,7 +105,6 @@ if submitted:
     st.markdown(f"### Prediction: {'✅ Subscribed' if pred == 1 else '❌ Not Subscribed'}")
     st.markdown(f"**Probability of subscription:** {proba:.2%}")
 
-    # Prepare SHAP explanation
     try:
         X_pre = preprocessor.transform(input_df)
     except Exception as e:
@@ -123,26 +116,22 @@ if submitted:
         try:
             explainer = shap.Explainer(clf, background)
             shap_exp = explainer(X_pre)
+
+            # Try force plot (interactive HTML)
             try:
-                # Attempt to render SHAP force plot (HTML)
                 force_html = shap.plots.force(shap_exp[0], matplotlib=False, show=False)
                 html_data = getattr(force_html, 'data', str(force_html))
-                components.html(html_data, height=300, scrolling=True)
-            except Exception as e:
-                st.error(f"Error rendering SHAP force plot (HTML): {e}")
-                st.write("Falling back to SHAP waterfall plot...")
-                # Fallback to waterfall plot (Matplotlib) if force plot fails
+                components.html(html_data, height=350, scrolling=True)
+            except Exception as e_force:
+                st.warning(f"Force plot not rendered: {e_force}\nFalling back to waterfall plot.")
+                # Waterfall plot fallback
                 try:
-                    fig, ax = plt.subplots(figsize=(8, 3))
+                    fig, ax = plt.subplots(figsize=(10, 5))
                     shap.plots.waterfall(shap_exp[0], max_display=12, show=False)
-                    buf = io.BytesIO()
-                    plt.savefig(buf, format='png', bbox_inches='tight')
-                    buf.seek(0)
-                    st.image(buf)
+                    st.pyplot(fig)
                     plt.close(fig)
-                except Exception as waterfall_e:
-                    st.error(f"Error rendering SHAP waterfall plot (Matplotlib): {waterfall_e}")
-                    st.write("Could not render any SHAP plots inline. Showing top contributors as text.")
+                except Exception as e_waterfall:
+                    st.warning(f"Waterfall plot not rendered: {e_waterfall}\nShowing top contributors as text.")
                     try:
                         vals = shap_exp.values[0] if shap_exp.values.ndim != 3 else shap_exp.values[0][:, 1]
                         feat_names = preprocessor.get_feature_names_out()
@@ -151,10 +140,11 @@ if submitted:
                         st.write(s.head(10))
                         st.write("Top negative contributors:")
                         st.write(s.tail(10))
-                    except Exception as ex:
-                        st.write("SHAP explanation is not available:", ex)
-        except Exception as e:
-            st.error(f"SHAP explainer initialization error: {e}")
+                    except Exception as e_text:
+                        st.error(f"SHAP text explanation failed: {e_text}")
+
+        except Exception as e_explainer:
+            st.error(f"SHAP explainer error: {e_explainer}")
             st.write("Could not render SHAP plots inline. Showing top contributors as text.")
             try:
                 vals = shap_exp.values[0] if shap_exp.values.ndim != 3 else shap_exp.values[0][:, 1]
@@ -164,5 +154,5 @@ if submitted:
                 st.write(s.head(10))
                 st.write("Top negative contributors:")
                 st.write(s.tail(10))
-            except Exception as ex:
-                st.write("SHAP explanation is not available:", ex)
+            except Exception as e_text:
+                st.error(f"SHAP text explanation failed: {e_text}")
