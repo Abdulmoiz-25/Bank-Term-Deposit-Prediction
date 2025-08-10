@@ -136,11 +136,6 @@ if submitted:
   st.markdown(f"### Prediction: {'✅ Subscribed' if pred == 1 else '❌ Not Subscribed'}")
   st.markdown(f"**Probability of subscription:** {proba:.2%}")
 
-  # Debug: Check image file existence
-  st.write("### Checking images availability:")
-  for k, path in test_cases.items():
-      st.write(f"{path}: {os.path.exists(path)}")
-
   closest_case = min(test_cases.keys(), key=lambda k: abs({
       6373: 0.0,
       3615: 0.655,
