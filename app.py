@@ -10,7 +10,6 @@ st.set_page_config(page_title="Term Deposit Prediction", layout="wide")
 st.title("📈 Bank Term Deposit Subscription Prediction")
 st.write("Enter customer data below and click Predict. The app returns prediction, probability, and SHAP explanation images with top contributors.")
 
-# Load model and shap background
 @st.cache_resource
 def load_model(path="rf_pipeline_cloud.pkl.gz"):
     with gzip.open(path, "rb") as f:
@@ -30,12 +29,10 @@ except Exception as e:
 
 shap_bg = load_shap_bg()
 
-# Extract preprocessor and classifier
 preprocessor = model.named_steps['pre']
 clf = model.named_steps['clf']
 
-# Your test cases with SHAP values and matching waterfall plot images
-# NOTE: images are now inside "images/" folder
+# Paths with images folder prefix!
 test_cases = {
     6373: "images/waterfall_6373.png",
     3615: "images/waterfall_3615.png",
@@ -78,7 +75,6 @@ with st.form("input_form"):
     submitted = st.form_submit_button("Predict")
 
 if submitted:
-    # Build input DataFrame WITHOUT duration
     input_df = pd.DataFrame([{
         "age": age,
         "job": job,
@@ -115,20 +111,19 @@ if submitted:
     st.markdown(f"### Prediction: {'✅ Subscribed' if pred == 1 else '❌ Not Subscribed'}")
     st.markdown(f"**Probability of subscription:** {proba:.2%}")
 
-    # Debug: check if images exist
-    st.write("### Checking if SHAP images exist:")
-    for img_file in test_cases.values():
-        st.write(f"{img_file}: {os.path.exists(img_file)}")
+    # Debug: Check image file existence
+    st.write("### Checking images availability:")
+    for k, path in test_cases.items():
+        st.write(f"{path}: {os.path.exists(path)}")
 
-    # Find closest matching saved waterfall image by probability difference
-    test_cases_probs = {
+    closest_case = min(test_cases.keys(), key=lambda k: abs({
         6373: 0.0,
         3615: 0.655,
         5391: 0.015,
         734: 0.765,
         3567: 0.020
-    }
-    closest_case = min(test_cases_probs.keys(), key=lambda k: abs(test_cases_probs[k] - proba))
+    }[k] - proba))
+
     img_path = test_cases[closest_case]
 
     st.write(f"Showing SHAP waterfall plot closest to your prediction (Test case index: {closest_case})")
@@ -137,113 +132,27 @@ if submitted:
         img = Image.open(img_path)
         st.image(img, caption=f"Waterfall plot for test case {closest_case}")
     except FileNotFoundError:
-        st.warning(f"Waterfall plot image '{img_path}' not found. Please upload it in the images folder.")
+        st.warning(f"Waterfall plot image '{img_path}' not found. Please upload it in the app folder.")
+    except Exception as e:
+        st.error(f"Error loading image: {e}")
 
-    # Show top positive and negative SHAP contributors as text tables
+    # Remove any SHAP inline plot calls or error messages in your code!
+
+    # Show top positive and negative contributors (hardcoded)
     shap_top_pos = {
-        6373: {
-            "month_may": 0.005538,
-            "day_of_week_thu": 0.003557,
-            "default_unknown": 0.002507,
-            "age": 0.002357,
-            "default_no": 0.001822,
-            "contact_telephone": 0.001742,
-            "campaign": 0.001638,
-            "job_technician": 0.001536
-        },
-        3615: {
-            "euribor3m": 0.124435,
-            "nr.employed": 0.117794,
-            "emp.var.rate": 0.080181,
-            "cons.conf.idx": 0.051238,
-            "cons.price.idx": 0.033215,
-            "month_apr": 0.024327,
-            "age": 0.021268,
-            "month_may": 0.012516
-        },
-        5391: {
-            "contact_telephone": 0.007689,
-            "contact_cellular": 0.005245,
-            "cons.price.idx": 0.004468,
-            "education_university.degree": 0.001965,
-            "month_aug": 0.001800,
-            "default_no": 0.001708,
-            "job_technician": 0.001443,
-            "day_of_week_mon": 0.001342
-        },
-        734: {
-            "nr.employed": 0.140340,
-            "euribor3m": 0.135097,
-            "emp.var.rate": 0.084644,
-            "contact_telephone": 0.042504,
-            "contact_cellular": 0.039225,
-            "cons.price.idx": 0.031847,
-            "day_of_week_wed": 0.024666,
-            "month_sep": 0.019837
-        },
-        3567: {
-            "contact_telephone": 0.006171,
-            "contact_cellular": 0.005295,
-            "job_management": 0.004231,
-            "month_may": 0.003308,
-            "cons.price.idx": 0.002849,
-            "month_aug": 0.001977,
-            "campaign": 0.001114,
-            "cons.conf.idx": 0.000892
-        }
+        6373: {"month_may": 0.005538, "day_of_week_thu": 0.003557, "default_unknown": 0.002507, "age": 0.002357, "default_no": 0.001822, "contact_telephone": 0.001742, "campaign": 0.001638, "job_technician": 0.001536},
+        3615: {"euribor3m": 0.124435, "nr.employed": 0.117794, "emp.var.rate": 0.080181, "cons.conf.idx": 0.051238, "cons.price.idx": 0.033215, "month_apr": 0.024327, "age": 0.021268, "month_may": 0.012516},
+        5391: {"contact_telephone": 0.007689, "contact_cellular": 0.005245, "cons.price.idx": 0.004468, "education_university.degree": 0.001965, "month_aug": 0.001800, "default_no": 0.001708, "job_technician": 0.001443, "day_of_week_mon": 0.001342},
+        734: {"nr.employed": 0.140340, "euribor3m": 0.135097, "emp.var.rate": 0.084644, "contact_telephone": 0.042504, "contact_cellular": 0.039225, "cons.price.idx": 0.031847, "day_of_week_wed": 0.024666, "month_sep": 0.019837},
+        3567: {"contact_telephone": 0.006171, "contact_cellular": 0.005295, "job_management": 0.004231, "month_may": 0.003308, "cons.price.idx": 0.002849, "month_aug": 0.001977, "campaign": 0.001114, "cons.conf.idx": 0.000892}
     }
 
     shap_top_neg = {
-        6373: {
-            "pdays": -0.002824,
-            "month_jul": -0.003148,
-            "housing_yes": -0.005652,
-            "cons.conf.idx": -0.014194,
-            "euribor3m": -0.017322,
-            "nr.employed": -0.020267,
-            "month_aug": -0.023142,
-            "emp.var.rate": -0.029946
-        },
-        3615: {
-            "loan_no": -0.000862,
-            "housing_yes": -0.000893,
-            "month_jul": -0.000922,
-            "poutcome_success": -0.001995,
-            "education_university.degree": -0.002049,
-            "day_of_week_wed": -0.002782,
-            "pdays": -0.003282,
-            "campaign": -0.007399
-        },
-        5391: {
-            "housing_yes": -0.004516,
-            "marital_divorced": -0.004614,
-            "month_jul": -0.004626,
-            "housing_no": -0.004856,
-            "job_admin.": -0.005295,
-            "euribor3m": -0.019849,
-            "nr.employed": -0.023010,
-            "emp.var.rate": -0.031801
-        },
-        734: {
-            "month_jul": -0.000360,
-            "month_mar": -0.000467,
-            "job_retired": -0.000671,
-            "month_dec": -0.000726,
-            "day_of_week_tue": -0.000777,
-            "poutcome_success": -0.001831,
-            "pdays": -0.003253,
-            "education_high.school": -0.015758
-        },
-        3567: {
-            "default_unknown": -0.005656,
-            "housing_yes": -0.006275,
-            "default_no": -0.006315,
-            "day_of_week_thu": -0.006734,
-            "housing_no": -0.006773,
-            "nr.employed": -0.017929,
-            "emp.var.rate": -0.021213,
-            "euribor3m": -0.022077
-        }
+        6373: {"pdays": -0.002824, "month_jul": -0.003148, "housing_yes": -0.005652, "cons.conf.idx": -0.014194, "euribor3m": -0.017322, "nr.employed": -0.020267, "month_aug": -0.023142, "emp.var.rate": -0.029946},
+        3615: {"loan_no": -0.000862, "housing_yes": -0.000893, "month_jul": -0.000922, "poutcome_success": -0.001995, "education_university.degree": -0.002049, "day_of_week_wed": -0.002782, "pdays": -0.003282, "campaign": -0.007399},
+        5391: {"housing_yes": -0.004516, "marital_divorced": -0.004614, "month_jul": -0.004626, "housing_no": -0.004856, "job_admin.": -0.005295, "euribor3m": -0.019849, "nr.employed": -0.023010, "emp.var.rate": -0.031801},
+        734: {"month_jul": -0.000360, "month_mar": -0.000467, "job_retired": -0.000671, "month_dec": -0.000726, "day_of_week_tue": -0.000777, "poutcome_success": -0.001831, "pdays": -0.003253, "education_high.school": -0.015758},
+        3567: {"default_unknown": -0.005656, "housing_yes": -0.006275, "default_no": -0.006315, "day_of_week_thu": -0.006734, "housing_no": -0.006773, "nr.employed": -0.017929, "emp.var.rate": -0.021213, "euribor3m": -0.022077}
     }
 
     st.write("### Top positive contributors:")
