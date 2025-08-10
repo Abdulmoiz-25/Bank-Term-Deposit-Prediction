@@ -105,6 +105,7 @@ if submitted:
         "euribor3m": euribor3m,
         "nr.employed": nr_employed,
         # Added 'balance' with a default value to match the expected 21 features
+        # If your model expects a different 21st feature, replace 'balance' with its name.
         "balance": 0 
     }])
     # Predict using the full pipeline (which applies preprocessing)
