@@ -7,18 +7,12 @@ import matplotlib.pyplot as plt
 import io
 import gzip
 import os
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Term Deposit Prediction", layout="wide")
 st.title("📈 Bank Term Deposit Subscription Prediction")
 st.write("Enter customer data below and click Predict. The app returns a prediction, probability and a SHAP explanation.")
 
-# Custom prediction probability threshold for subscription
-THRESHOLD = 0.3  # Change this value as you want
-
-# =========================
 # Load model with gzip + cloudpickle
-# =========================
 @st.cache_resource
 def load_model(path="rf_pipeline_cloud.pkl.gz"):
     with gzip.open(path, "rb") as f:
@@ -107,19 +101,32 @@ if submitted:
         "cons.conf.idx": cons_conf_idx,
         "euribor3m": euribor3m,
         "nr.employed": nr_employed,
-        "balance": 0  # Add this if your model expects it
+        # Add 'balance' if your model expects it; replace 0 with proper value if available
+        "balance": 0
     }])
 
+    # Ensure columns order matches model preprocessor input
+    expected_cols = preprocessor.feature_names_in_ if hasattr(preprocessor, 'feature_names_in_') else None
+    if expected_cols is not None:
+        missing_cols = [col for col in expected_cols if col not in input_df.columns]
+        if missing_cols:
+            st.warning(f"Warning: Input data missing expected columns: {missing_cols}")
+        cols_to_use = [col for col in expected_cols if col in input_df.columns]
+        input_df = input_df[cols_to_use]
+
     try:
+        pred = model.predict(input_df)[0]
         proba = model.predict_proba(input_df)[0, 1]
-        pred_label = "✅ Subscribed" if proba > THRESHOLD else "❌ Not Subscribed"
     except Exception as e:
         st.error(f"Prediction error: {e}")
         st.stop()
 
+    # Show prediction label correctly
+    pred_label = "✅ Subscribed" if pred == 1 else "❌ Not Subscribed"
     st.markdown(f"### Prediction: {pred_label}")
     st.markdown(f"**Probability of subscription:** {proba:.2%}")
 
+    # SHAP explanation
     try:
         X_pre = preprocessor.transform(input_df)
     except Exception as e:
@@ -131,28 +138,13 @@ if submitted:
         try:
             explainer = shap.Explainer(clf, background)
             shap_exp = explainer(X_pre)
-
-            try:
-                force_html = shap.plots.force(shap_exp[0], matplotlib=False, show=False)
-                html_data = getattr(force_html, 'data', str(force_html))
-                components.html(html_data, height=300, scrolling=True)
-            except Exception:
-                fig, ax = plt.subplots(figsize=(8, 3))
-                shap.plots.waterfall(shap_exp[0], max_display=12, show=False)
-                buf = io.BytesIO()
-                plt.savefig(buf, format='png', bbox_inches='tight')
-                buf.seek(0)
-                st.image(buf)
-                plt.close(fig)
-
-        except Exception:
-            try:
-                vals = shap_exp.values[0] if shap_exp.values.ndim != 3 else shap_exp.values[0][:, 1]
-                feat_names = preprocessor.get_feature_names_out()
-                s = pd.Series(vals, index=feat_names).sort_values(ascending=False)
-                st.write("Top positive contributors:")
-                st.write(s.head(10))
-                st.write("Top negative contributors:")
-                st.write(s.tail(10))
-            except Exception as ex:
-                st.write("SHAP explanation is not available:", ex)
+            # Show waterfall plot (static)
+            fig, ax = plt.subplots(figsize=(8, 3))
+            shap.plots.waterfall(shap_exp[0], max_display=12, show=False)
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight')
+            buf.seek(0)
+            st.image(buf)
+            plt.close(fig)
+        except Exception as e:
+            st.error(f"Could not generate SHAP explanation: {e}")
