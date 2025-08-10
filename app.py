@@ -13,6 +13,9 @@ st.set_page_config(page_title="Term Deposit Prediction", layout="wide")
 st.title("📈 Bank Term Deposit Subscription Prediction")
 st.write("Enter customer data below and click Predict. The app returns a prediction, probability and a SHAP explanation.")
 
+# =========================
+# Load model with gzip + cloudpickle
+# =========================
 @st.cache_resource
 def load_model(path="rf_pipeline_cloud.pkl.gz"):
     with gzip.open(path, "rb") as f:
@@ -33,6 +36,7 @@ except Exception as e:
 
 shap_bg = load_shap_bg()
 
+# Get preprocessor and classifier
 preprocessor = model.named_steps['pre']
 clf = model.named_steps['clf']
 
@@ -47,7 +51,8 @@ with st.form("input_form"):
              "entrepreneur", "unknown"],
             index=4
         )
-        marital = st.selectbox("marital", ["married", "single", "divorced", "unknown"], index=0)
+        marital = st.selectbox("marital", ["married", "single", "divorced", "unknown"],
+                               index=0)
         education = st.selectbox(
             "education",
             ["basic.4y", "basic.6y", "basic.9y", "high.school",
@@ -55,21 +60,33 @@ with st.form("input_form"):
             index=6
         )
     with col2:
-        default = st.selectbox("default", ["no", "yes", "unknown"], index=0)
-        housing = st.selectbox("housing", ["no", "yes", "unknown"], index=1)
-        loan = st.selectbox("loan", ["no", "yes", "unknown"], index=0)
-        contact = st.selectbox("contact", ["cellular", "telephone"], index=0)
+        default = st.selectbox("default", ["no", "yes", "unknown"],
+                               index=0)
+        housing = st.selectbox("housing", ["no", "yes", "unknown"],
+                               index=1)
+        loan = st.selectbox("loan", ["no", "yes", "unknown"],
+                            index=0)
+        contact = st.selectbox("contact", ["cellular", "telephone"],
+                               index=0)
     with col3:
         month = st.selectbox(
             "month",
             ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"],
             index=4
         )
-        day_of_week = st.selectbox("day_of_week", ["mon", "tue", "wed", "thu", "fri"], index=3)
-        campaign = st.number_input("campaign (contacts during this campaign)", min_value=1, value=3)
-        pdays = st.number_input("pdays (days since last contact, -1 if none)", value=100)
-    previous = st.number_input("previous (contacts before this campaign)", min_value=0, value=5)
-    poutcome = st.selectbox("poutcome", ["nonexistent", "failure", "success"], index=2)
+        day_of_week = st.selectbox("day_of_week", ["mon", "tue", "wed", "thu", "fri"],
+                                   index=3)
+        campaign = st.number_input("campaign (contacts during this campaign)", min_value=1,
+                                   value=3)
+        pdays = st.number_input("pdays (days since last contact, -1 if none)",
+                                value=100)
+    # Additional fields below
+    previous = st.number_input("previous (contacts before this campaign)", min_value=0,
+                               value=5)
+    poutcome = st.selectbox("poutcome", ["nonexistent", "failure", "success"],
+                            index=2)
+    duration = st.number_input("duration (last contact duration in seconds)", min_value=0,
+                               value=1000)
     emp_var_rate = st.number_input("emp.var.rate", value=1.4, format="%.2f")
     cons_price_idx = st.number_input("cons.price.idx", value=93.994, format="%.3f")
     cons_conf_idx = st.number_input("cons.conf.idx", value=-36.4, format="%.1f")
@@ -94,7 +111,7 @@ if submitted:
         "pdays": pdays,
         "previous": previous,
         "poutcome": poutcome,
-        # Removed 'duration' here
+        "duration": duration,
         "emp.var.rate": emp_var_rate,
         "cons.price.idx": cons_price_idx,
         "cons.conf.idx": cons_conf_idx,
@@ -102,19 +119,19 @@ if submitted:
         "nr.employed": nr_employed
     }])
 
-    # Ensure preprocessor is fitted to get feature names
-    preprocessor.fit(input_df)
+    # Ensure input columns match expected order and presence
+    expected_cols = preprocessor.feature_names_in_
+    missing_cols = [col for col in expected_cols if col not in input_df.columns]
+    if missing_cols:
+        st.error(f"Input data is missing columns expected by the model: {missing_cols}")
+        st.stop()
 
-    expected_cols = preprocessor.feature_names_in_ if hasattr(preprocessor, 'feature_names_in_') else None
-    if expected_cols is not None:
-        missing_cols = [col for col in expected_cols if col not in input_df.columns]
-        if missing_cols:
-            st.warning(f"Warning: Input data is missing columns expected by the model: {missing_cols}")
-        cols_to_use = [col for col in expected_cols if col in input_df.columns]
-        input_df = input_df[cols_to_use]
+    input_df = input_df[expected_cols]
 
+    # Prediction
     pred = model.predict(input_df)[0]
     proba = model.predict_proba(input_df)[0, 1]
+
     st.markdown(f"### Prediction: {'✅ Subscribed' if pred == 1 else '❌ Not Subscribed'}")
     st.markdown(f"**Probability of subscription:** {proba:.2%}")
 
@@ -135,19 +152,20 @@ if submitted:
 
     if shap_exp is not None:
         try:
-            # Try SHAP force plot in HTML
             force_html = shap.plots.force(shap_exp[0], matplotlib=False, show=False)
             html_data = getattr(force_html, 'data', str(force_html))
             components.html(html_data, height=300, scrolling=True)
         except Exception:
             try:
-                # Fallback to waterfall plot
-                fig, ax = plt.subplots(figsize=(8, 4))
+                fig, ax = plt.subplots(figsize=(8, 3))
                 shap.plots.waterfall(shap_exp[0], max_display=12, show=False)
-                st.pyplot(fig)
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png', bbox_inches='tight')
+                buf.seek(0)
+                st.image(buf)
                 plt.close(fig)
             except Exception as e:
-                # Final fallback to textual explanation
+                st.write("Could not render SHAP plots inline. Showing top contributors as text.")
                 try:
                     if shap_exp.values.ndim == 3:
                         vals = shap_exp.values[0][:, 1]
